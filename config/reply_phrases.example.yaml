@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "source": "sanitized-example-only",
+  "verified_at": "REPLACE_ME",
+  "observed_count": 5,
+  "phrases": [
+    {
+      "key": "p01_check_jianying_ps",
+      "intent": "request_resume",
+      "text": "【示例】请替换为经审批的作品集询问话术。"
+    },
+    {
+      "key": "p02_invite_interview",
+      "intent": "interview",
+      "text": "【示例】请替换为经审批的面试邀请话术。"
+    },
+    {
+      "key": "p09_work_schedule",
+      "intent": "job_details",
+      "text": "【示例】请替换为经审批的工作时间说明话术。"
+    },
+    {
+      "key": "p13_reject",
+      "intent": "reject",
+      "text": "【示例】请替换为经审批的不匹配回复话术。"
+    },
+    {
+      "key": "p14_address_acceptance",
+      "intent": "address",
+      "text": "【示例】请替换为经审批的地址确认话术。"
+    }
+  ]
+}

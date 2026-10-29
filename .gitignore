@@ -1,0 +1,41 @@
+# Local machine and device binding
+.env
+.env.local
+
+# Real business configuration; only sanitized examples may be tracked
+config/*.yaml
+!config/*.example.yaml
+
+# Runtime databases and SQLite sidecars; keep data/*.sql
+data/*.sqlite3
+data/*.sqlite3-*
+data/*.db
+data/*.db-*
+
+# Runtime evidence and local-only work areas
+log/
+recon/
+tmp/
+素材区_请勿读取/
+
+# Python environments, caches, tests, and builds
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

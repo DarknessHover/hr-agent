@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="HR招聘Agent当前1号主动招呼与2号首次新招呼回复流程。">
+  <title>HR 招聘 Agent · 当前流程</title>
+  <link rel="stylesheet" href="assets/dom-docs.css">
+  <script defer src="assets/dom-diagrams.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">跳到正文</a>
+<header class="hero"><div class="shell"><h1>HR 招聘 Agent · 当前流程</h1></div></header>
+<nav class="page-nav" aria-label="文档导航"><div class="shell"><a href="#state1">1号</a><a href="#state2">2号</a><a href="#evidence">证据</a><a href="#exit">出口</a></div></nav>
+<main id="main-content" class="shell">
+  <section id="state1" class="doc-section">
+    <p class="section-kicker">01 · Proactive greeting</p><h2>1号：牛人列表到首次招呼</h2>
+    <figure id="diagram-state1" class="diagram" aria-labelledby="state1-caption">
+      <div class="diagram-header"><div><span class="diagram-title">图 1 · 1号正式主链</span><span class="diagram-subtitle">来源：app/main.py、app/walker.py、app/store.py</span></div></div>
+      <div class="diagram-viewport"><div class="diagram-stage"><svg class="connector-layer" aria-hidden="true"></svg>
+        <article id="s1-list" class="flow-node r1 c3 cs2"><span class="node-id">LIST</span><strong>确认牛人列表并选卡</strong><p>按页面顺序，只向下遍历。</p></article>
+        <article id="s1-resume" class="flow-node r3 c3 cs2"><span class="node-id">CAPTURE</span><strong>进入并采集简历</strong><p>身份校验；逐屏展开折叠正文；多屏拼接、落盘。</p></article>
+        <article id="s1-eval" class="flow-node agent r5 c3 cs2" data-node-type="agent-decision"><span class="node-id">DECIDE</span><strong>Agent三值评估</strong><p><code>greet/do_not_greet/needs_review</code></p></article>
+        <article id="s1-skip" class="flow-node success terminal r7 c1 cs2" data-node-type="terminal"><span class="node-id">NO SEND</span><strong>不发送并返回列表</strong><p>否决或人工复核。</p></article>
+        <article id="s1-gate" class="flow-node decision r7 c4 cs2" data-node-type="decision"><span class="node-id">HARD GATE</span><strong>身份、终态和按钮均允许？</strong><p>只接受目标姓名和“立即沟通”。</p></article>
+        <article id="s1-stop" class="flow-node stop terminal r9 c1 cs2" data-node-type="terminal"><span class="node-id">STOP</span><strong>停机或保持封口</strong><p>未知页面、身份漂移或已有终态。</p></article>
+        <article id="s1-send" class="flow-node stop r9 c4 cs2" data-node-type="side-effect" data-side-effect="send-greeting"><span class="node-id">SEND</span><strong>点击首次招呼</strong><p>越过不可逆边界。</p></article>
+        <article id="s1-result" class="flow-node data r11 c4 cs2" data-node-type="data-state"><span class="node-id">RESULT</span><strong>回读并写入终态</strong><p><code>sent/unknown/session_exists</code></p></article>
+      </div></div>
+      <figcaption id="state1-caption">只有Agent批准且现场硬闸通过才会发送。</figcaption>
+      <details class="relation-index" open><summary>静态边索引</summary><ol class="edge-model">
+        <li data-from="s1-list" data-to="s1-resume" data-label="唯一定位" data-kind="default"><span class="edge-key">s1-list → s1-resume</span>：进入目标简历。</li>
+        <li data-from="s1-resume" data-to="s1-eval" data-label="快照落盘" data-kind="data"><span class="edge-key">s1-resume → s1-eval</span>：提供判断素材。</li>
+        <li data-from="s1-eval" data-to="s1-skip" data-label="do_not_greet / needs_review" data-kind="success"><span class="edge-key">s1-eval → s1-skip</span>：不发送。</li>
+        <li data-from="s1-eval" data-to="s1-gate" data-label="greet" data-kind="agent"><span class="edge-key">s1-eval → s1-gate</span>：进入现场硬闸。</li>
+        <li data-from="s1-gate" data-to="s1-stop" data-label="任一不满足" data-kind="error"><span class="edge-key">s1-gate → s1-stop</span>：停止或无操作。</li>
+        <li data-from="s1-gate" data-to="s1-send" data-label="全部满足" data-kind="error"><span class="edge-key">s1-gate → s1-send</span>：执行不可逆点击。</li>
+        <li data-from="s1-send" data-to="s1-result" data-label="回读" data-kind="data"><span class="edge-key">s1-send → s1-result</span>：确认送达或保守unknown。</li>
+        <li data-from="s1-result" data-to="s1-list" data-label="返回继续" data-kind="loop"><span class="edge-key">s1-result → s1-list</span>：在配额和列表上限内继续。</li>
+        <li data-from="s1-skip" data-to="s1-list" data-label="下一位" data-kind="loop"><span class="edge-key">s1-skip → s1-list</span>：继续顺序遍历。</li>
+      </ol></details>
+    </figure>
+  </section>
+
+  <section id="state2" class="doc-section">
+    <p class="section-kicker">02 · First inbound reply</p><h2>2号：新招呼到常用语回复</h2>
+    <div class="notice"><strong>验证边界：</strong>通用话术选择已完成代码和离线测试；真机面板定位、发送回读与平台迁移仍待条件恢复后验收。</div>
+    <figure id="diagram-state2" class="diagram" aria-labelledby="state2-caption">
+      <div class="diagram-header"><div><span class="diagram-title">图 2 · 2号正式主链</span><span class="diagram-subtitle">来源：app/reply_plan.py、app/reply_flow.py、app/reply_main.py、app/reply_store.py</span></div></div>
+      <div class="diagram-viewport"><div class="diagram-stage"><svg class="connector-layer" aria-hidden="true"></svg>
+        <article id="s2-list" class="flow-node r1 c3 cs2"><span class="node-id">SESSION LIST</span><strong>扫描并重新定位会话</strong><p>已读/未读使用同一流程。</p></article>
+        <article id="s2-chat" class="flow-node r3 c3 cs2"><span class="node-id">CHAT</span><strong>打开聊天并校验身份</strong><p>读取消息方向。</p></article>
+        <article id="s2-capture" class="flow-node r5 c3 cs2"><span class="node-id">MESSAGE + RESUME</span><strong>确认当前入站消息并采集简历</strong><p>平台列表已完成业务分流；程序校验身份和消息方向，并由公共采集器逐屏展开折叠正文。</p></article>
+        <article id="s2-plan" class="flow-node agent r7 c3 cs2" data-node-type="agent-decision"><span class="node-id">REPLY PLAN</span><strong>按语境选择允许话术</strong><p>send绑定phrase_key；无安全匹配时hold。</p></article>
+        <article id="s2-review" class="flow-node success terminal r9 c1 cs2" data-node-type="terminal"><span class="node-id">NEEDS REVIEW</span><strong>写入needs_review，不发送</strong></article>
+        <article id="s2-phrase" class="flow-node decision r9 c4 cs2" data-node-type="decision"><span class="node-id">PHRASE GATE</span><strong>话术、会话和消息仍一致？</strong><p>真机正文必须逐字命中允许清单。</p></article>
+        <article id="s2-stop" class="flow-node stop terminal r11 c1 cs2" data-node-type="terminal"><span class="node-id">STOP</span><strong>校验失败或风控停机</strong><p>不越过发送边界。</p></article>
+        <article id="s2-send" class="flow-node stop r11 c4 cs2" data-node-type="side-effect" data-side-effect="send-common-phrase"><span class="node-id">SEND</span><strong>点击常用语发送</strong><p>先记录动作和尝试边界。</p></article>
+        <article id="s2-result" class="flow-node data r13 c3 cs2" data-node-type="data-state"><span class="node-id">RESULT</span><strong>回读气泡并验证列表迁移</strong><p>确认sent后目标必须离开新招呼；否则停机。</p></article>
+      </div></div>
+      <figcaption id="state2-caption">“新招呼”列表是平台提供的外部分流边界；程序保留当前入站消息校验与消息级幂等。</figcaption>
+      <details class="relation-index" open><summary>静态边索引</summary><ol class="edge-model">
+        <li data-from="s2-list" data-to="s2-chat" data-label="点击前重新定位" data-kind="default"><span class="edge-key">s2-list → s2-chat</span>：打开唯一目标会话。</li>
+        <li data-from="s2-chat" data-to="s2-capture" data-label="身份及当前入站消息可确认" data-kind="default"><span class="edge-key">s2-chat → s2-capture</span>：保存当前入站消息并读取简历，不扫描历史气泡。</li>
+        <li data-from="s2-capture" data-to="s2-plan" data-label="事实落盘" data-kind="data"><span class="edge-key">s2-capture → s2-plan</span>：建立消息级动作。</li>
+        <li data-from="s2-plan" data-to="s2-review" data-label="review" data-kind="agent"><span class="edge-key">s2-plan → s2-review</span>：转人工，不发送。</li>
+        <li data-from="s2-plan" data-to="s2-phrase" data-label="send + phrase_key" data-kind="agent"><span class="edge-key">s2-plan → s2-phrase</span>：在完整允许清单中定位Agent选择的话术。</li>
+        <li data-from="s2-phrase" data-to="s2-stop" data-label="任一不一致" data-kind="error"><span class="edge-key">s2-phrase → s2-stop</span>：停止当前条目。</li>
+        <li data-from="s2-phrase" data-to="s2-send" data-label="全部一致" data-kind="error"><span class="edge-key">s2-phrase → s2-send</span>：越过发送边界。</li>
+        <li data-from="s2-send" data-to="s2-result" data-label="回读" data-kind="data"><span class="edge-key">s2-send → s2-result</span>：写入sent或unknown。</li>
+        <li data-from="s2-result" data-to="s2-list" data-label="迁移已确认" data-kind="loop"><span class="edge-key">s2-result → s2-list</span>：目标从新招呼消失后继续。</li>
+        <li data-from="s2-review" data-to="s2-list" data-label="封口后继续" data-kind="loop"><span class="edge-key">s2-review → s2-list</span>：人工项不阻塞其它会话。</li>
+      </ol></details>
+    </figure>
+  </section>
+
+  <section id="evidence" class="doc-section">
+    <p class="section-kicker">03 · Evidence policy</p><h2>证据等级</h2>
+    <div class="contract-grid"><article class="contract-card"><h3>minimal</h3><p>正式默认。事件日志全量保留；只在不可逆边界、异常、风控和停机保存XML/PNG。</p></article><article class="contract-card"><h3>debug</h3><p>页面侦察和故障复现保存完整步骤证据。</p></article><article class="contract-card"><h3>off</h3><p>离线和纯数据库操作不保存界面证据。</p></article><article class="contract-card"><h3>数据库</h3><p>只保留幂等、边界、终态和必要审计时间，不保存测试流水。</p></article></div>
+  </section>
+
+  <section id="exit" class="doc-section">
+    <p class="section-kicker">04 · Result contract</p><h2>业务终态与进程退出码不同</h2>
+    <div class="table-wrap"><table id="exit-table" data-table-kind="exit-contract"><thead><tr><th>进程</th><th>可能业务结果</th><th>调用方动作</th></tr></thead><tbody><tr><td>0</td><td>sent、跳过、dry-run、人工复核或列表结束</td><td>读取数据库状态和事件日志</td></tr><tr><td>非0</td><td>unknown发送、参数错误、设备错误、风险熔断、迁移验证失败或存储契约失败</td><td>检查stop事件及可用现场证据</td></tr></tbody></table></div>
+  </section>
+</main>
+<footer>当前流程 · 事实源：当前代码与DDL</footer>
+</body>
+</html>

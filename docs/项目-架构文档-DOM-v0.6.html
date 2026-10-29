@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="HR招聘Agent当前1号、2号状态机架构、数据边界和CLI契约。">
+  <title>HR 招聘 Agent · 当前架构</title>
+  <link rel="stylesheet" href="assets/dom-docs.css">
+  <script defer src="assets/dom-diagrams.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">跳到正文</a>
+<header class="hero architecture"><div class="shell"><h1>HR 招聘 Agent · 当前架构</h1></div></header>
+<nav class="page-nav" aria-label="文档导航"><div class="shell">
+  <a href="#overview">总览</a><a href="#modules">模块</a><a href="#data">数据</a><a href="#cli">CLI</a><a href="#contracts">契约</a>
+</div></nav>
+
+<main id="main-content" class="shell">
+  <section id="overview" class="doc-section">
+    <p class="section-kicker">01 · Current boundary</p>
+    <h2>两套业务编排，共享一组底层能力</h2>
+    <p class="lead">实现事实源为当前 <code>app/</code> 与 <code>data/*.sql</code>；本机设备绑定和业务配置分别遵循 <code>.env.example</code> 与 <code>config/*.example.yaml</code> 的接口。1号、2号共享设备、页面和简历能力，但不共享动作状态、幂等或恢复策略。</p>
+    <div class="notice"><strong>验证边界：</strong>2号已实现Agent从完整允许清单按语境选话术并通过离线测试，但尚未恢复真机验收；ADR-0003数据模型也尚未迁移。</div>
+
+    <figure id="diagram-context" class="diagram" aria-labelledby="context-caption">
+      <div class="diagram-header"><div><span class="diagram-title">图 1 · 系统上下文</span><span class="diagram-subtitle">标准CLI路由到两套独立状态机</span></div></div>
+      <div class="diagram-viewport"><div class="diagram-stage">
+        <svg class="connector-layer" aria-hidden="true"></svg>
+        <article id="arch-user" class="flow-node agent r1 c3 cs2" data-node-type="external-actor"><span class="node-id">HUMAN / AGENT</span><strong>提供决策与执行授权</strong><p>Agent不直接操作设备。</p></article>
+        <article id="arch-cli" class="flow-node r3 c3 cs2" data-node-type="router"><span class="node-id">app.cli</span><strong>标准CLI路由</strong><p><code>doctor/state1/state2/debug</code>；统一证据等级。</p></article>
+        <article id="arch-state1" class="flow-node r5 c1 cs2" data-node-type="business-orchestrator"><span class="node-id">STATE 1</span><strong>主动招呼编排</strong><p><code>main + walker + store</code></p></article>
+        <article id="arch-state2" class="flow-node r5 c5 cs2" data-node-type="business-orchestrator"><span class="node-id">STATE 2</span><strong>首次新招呼回复</strong><p><code>reply_flow + reply_plan + reply_main + reply_store</code></p></article>
+        <article id="arch-shared" class="flow-node data r7 c3 cs2" data-node-type="shared-capability"><span class="node-id">SHARED</span><strong>本机设置、设备、页面、简历、回复计划、日志</strong><p><code>settings/device/resume/screen_ops/resume_collector/review/reply_plan/logging</code></p></article>
+        <article id="arch-db1" class="flow-node data r9 c1 cs2" data-node-type="data-store"><span class="node-id">DB 1</span><strong>hr_agent_v2.sqlite3</strong><p>候选人、评估和首次招呼兼容结构。</p></article>
+        <article id="arch-device" class="flow-node r9 c3 cs2" data-node-type="external-system"><span class="node-id">ANDROID</span><strong>固定设备与BOSS客户端</strong><p>唯一能产生页面副作用的信任域。</p></article>
+        <article id="arch-db2" class="flow-node data r9 c5 cs2" data-node-type="data-store"><span class="node-id">DB 2</span><strong>reply_agent.sqlite3</strong><p>候选人兼容表、会话、消息、动作和发送尝试。</p></article>
+      </div></div>
+      <figcaption id="context-caption">共享层提供能力，不替业务层授权发送。</figcaption>
+      <details class="relation-index" open><summary>静态边索引</summary><ol class="edge-model">
+        <li data-from="arch-user" data-to="arch-cli" data-label="命令与授权" data-kind="agent"><span class="edge-key">arch-user → arch-cli</span>：人工或Agent提供结构化决策与执行意图。</li>
+        <li data-from="arch-cli" data-to="arch-state1" data-label="state1" data-kind="default"><span class="edge-key">arch-cli → arch-state1</span>：路由1号命令。</li>
+        <li data-from="arch-cli" data-to="arch-state2" data-label="state2" data-kind="default"><span class="edge-key">arch-cli → arch-state2</span>：路由2号命令。</li>
+        <li data-from="arch-state1" data-to="arch-shared" data-label="调用公共能力" data-kind="data"><span class="edge-key">arch-state1 → arch-shared</span>：1号调用页面和简历能力。</li>
+        <li data-from="arch-state2" data-to="arch-shared" data-label="调用公共能力" data-kind="data"><span class="edge-key">arch-state2 → arch-shared</span>：2号调用页面、简历和日志能力。</li>
+        <li data-from="arch-state1" data-to="arch-db1" data-label="状态读写" data-kind="data"><span class="edge-key">arch-state1 → arch-db1</span>：保存1号业务状态。</li>
+        <li data-from="arch-state2" data-to="arch-db2" data-label="状态读写" data-kind="data"><span class="edge-key">arch-state2 → arch-db2</span>：保存2号业务状态。</li>
+        <li data-from="arch-shared" data-to="arch-device" data-label="受控ADB动作" data-kind="error"><span class="edge-key">arch-shared → arch-device</span>：识别页面后执行点击、返回或滑动。</li>
+      </ol></details>
+    </figure>
+  </section>
+
+  <section id="modules" class="doc-section">
+    <p class="section-kicker">02 · Module ownership</p><h2>模块职责</h2>
+    <div class="table-wrap"><table id="module-table" data-table-kind="module-ownership"><thead><tr><th>层</th><th>模块</th><th>负责</th><th>不负责</th></tr></thead><tbody>
+      <tr><td>入口</td><td><code>cli.py</code></td><td>命令路由、证据等级</td><td>业务授权</td></tr>
+      <tr><td>本机设置</td><td><code>settings.py</code></td><td>读取.env与系统环境变量，形成准入设备契约</td><td>业务配置与设备动作</td></tr>
+      <tr><td>公共设备</td><td><code>device.py</code></td><td>ADB和输入原语</td><td>页面与候选人语义</td></tr>
+      <tr><td>公共页面</td><td><code>resume.py</code>、<code>screen_ops.py</code></td><td>控件树、页面分类、熔断和导航守卫</td><td>动作终态</td></tr>
+      <tr><td>公共采集</td><td><code>resume.py:fold_targets</code>、<code>resume_collector.py</code></td><td>逐屏识别并展开折叠正文、简历多屏拼接</td><td>是否发送</td></tr>
+      <tr><td>公共评语规则</td><td><code>review.py</code></td><td>非空硬约束；100–300字建议，超范围不阻断入库</td><td>业务决策</td></tr>
+      <tr><td>1号</td><td><code>main.py</code>、<code>walker.py</code>、<code>store.py</code></td><td>牛人列表、评估、首次招呼</td><td>消息级回复</td></tr>
+      <tr><td>公共回复契约</td><td><code>reply_plan.py</code></td><td>校验允许话术目录并表达send/hold、话术键、意图和理由</td><td>页面动作与发送授权</td></tr>
+      <tr><td>2号</td><td><code>reply_ui.py</code>、<code>reply_flow.py</code>、<code>reply_main.py</code>、<code>reply_store.py</code></td><td>首次新招呼、按语境选择允许话术、人工挂起和恢复</td><td>已有交流的多轮跟进</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="data" class="doc-section">
+    <p class="section-kicker">03 · Data boundary</p><h2>当前数据边界</h2>
+    <div class="contract-grid">
+      <article class="contract-card"><h3>1号数据库</h3><p>当前单表同时保存简历、评估和首次招呼。重采只更新可见事实，终态封口。</p></article>
+      <article class="contract-card"><h3>2号数据库</h3><p>兼容candidate表之外，包含会话、入站消息、回复动作和发送尝试四层。</p></article>
+      <article class="contract-card"><h3>不可跨库同步</h3><p>两套状态机不得按姓名复制动作状态；姓名不是稳定平台身份。</p></article>
+      <article class="contract-card"><h3>3号准备度</h3><p>ReplyPlan、消息方向、话术定位、发送边界和回读可复用；仅沟通列表与消息意图策略尚未实现。</p></article>
+    </div>
+  </section>
+
+  <section id="cli" class="doc-section">
+    <p class="section-kicker">04 · CLI contract</p><h2>标准入口</h2>
+    <pre><code>python -m app doctor
+python -m app [--evidence off|minimal|debug] state1 COMMAND ...
+python -m app [--evidence off|minimal|debug] state2 COMMAND ...
+python -m app debug state1|state2 COMMAND ...</code></pre>
+    <p>旧的 <code>python -m app.main</code> 与 <code>python -m app.reply_main</code> 是兼容入口。进程退出0只表示命令正常收敛，不等于消息已发送；业务结果必须读取数据库状态和事件日志。</p>
+  </section>
+
+  <section id="contracts" class="doc-section">
+    <p class="section-kicker">05 · Safety contracts</p><h2>跨模块不可绕过的契约</h2>
+    <div class="card-grid">
+      <article class="info-card stop"><h3>页面未知即停机</h3><p>不盲点、不盲返；命中验证码或风控同样熔断。</p></article>
+      <article class="info-card warn"><h3>坐标不能跨观察复用</h3><p>不可逆动作前重新读屏并绑定目标控件。</p></article>
+      <article class="info-card good"><h3>分流与幂等</h3><p>2号采用平台“新招呼”列表分流；数据库按当前入站消息阻止重复越界。</p></article>
+      <article class="info-card agent"><h3>Agent无设备副作用</h3><p>判断失败或重做不会直接点击平台。</p></article>
+    </div>
+  </section>
+</main>
+<footer>当前架构 · 事实源：<code>app/</code>、<code>data/*.sql</code>；本机接口：<code>.env.example</code>、<code>config/*.example.yaml</code></footer>
+</body>
+</html>

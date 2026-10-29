@@ -1,0 +1,42 @@
+# 脱敏结构示例。复制为 job_profiles.yaml 后，必须用经审批的真实岗位标准替换占位内容。
+meta:
+  岗位名称: "REPLACE_ME"
+  城市: "REPLACE_ME"
+  薪资: "REPLACE_ME"
+  学历: "REPLACE_ME"
+  经验: "REPLACE_ME"
+  方向标签: []
+
+一句话画像: "REPLACE_ME"
+
+岗位职责:
+  - "REPLACE_ME"
+
+必备能力:
+  - "REPLACE_ME"
+
+加分项:
+  - "REPLACE_ME"
+
+技能栈:
+  设计: []
+  剪辑: []
+  运营: []
+
+理想候选人画像:
+  能力组合: "REPLACE_ME"
+  性格特质: "REPLACE_ME"
+
+筛选关键词:
+  高优先: []
+  加分命中: []
+  警惕排除: []
+
+负向信号:
+  - "REPLACE_ME"
+
+判据注记（2026-10-16 放宽）:
+  三要素放行: "REPLACE_ME"
+  平面达标: "REPLACE_ME"
+  运营为先: "REPLACE_ME"
+  工具: "REPLACE_ME"
